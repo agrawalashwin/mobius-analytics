@@ -130,15 +130,16 @@ export default function OverallJobMarketTrendsChart() {
       height={config.display.height}
       methodology={config.methodology}
     >
-      {/* Filters at the top */}
-      <Box sx={{
-        display: 'flex',
-        flexDirection: { xs: 'column', md: 'row' },
-        gap: 2,
-        mb: 3,
-        flexWrap: 'wrap',
-        alignItems: { xs: 'stretch', md: 'center' }
-      }}>
+      {/* Filters and Summary - All in one row */}
+      <Box sx={{ mb: 3 }}>
+        <Box sx={{
+          display: 'flex',
+          flexDirection: { xs: 'column', sm: 'row' },
+          gap: 2,
+          mb: 2,
+          flexWrap: 'wrap',
+          alignItems: { xs: 'stretch', sm: 'center' }
+        }}>
           {/* State Filter */}
           <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 200 } }}>
             <InputLabel shrink>State</InputLabel>
@@ -201,21 +202,22 @@ export default function OverallJobMarketTrendsChart() {
             </Select>
           </FormControl>
 
-        {/* Summary Stats */}
-        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
-          <Chip
-            label={`${chartData.reduce((sum, d) => sum + d.job_count, 0).toLocaleString()} jobs`}
-            color="primary"
-            size="small"
-          />
-          {selectedStates.length > 0 && (
+          {/* Summary Stats */}
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
             <Chip
-              label={`${selectedStates.length} state${selectedStates.length > 1 ? 's' : ''}`}
-              variant="outlined"
+              label={`${chartData.reduce((sum, d) => sum + d.job_count, 0).toLocaleString()} jobs`}
+              color="primary"
               size="small"
-              onDelete={() => setSelectedStates([])}
             />
-          )}
+            {selectedStates.length > 0 && (
+              <Chip
+                label={`${selectedStates.length} state${selectedStates.length > 1 ? 's' : ''}`}
+                variant="outlined"
+                size="small"
+                onDelete={() => setSelectedStates([])}
+              />
+            )}
+          </Box>
         </Box>
       </Box>
 
