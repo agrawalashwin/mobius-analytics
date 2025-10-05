@@ -80,12 +80,31 @@ export default function OverallJobMarketTrendsChart() {
   }, [] as { week_start: string; job_count: number; unique_companies: number; remote_jobs: number }[])
 
   // Sort by date
-  const chartData = weeklyAggregated
-    .sort((a, b) => new Date(a.week_start).getTime() - new Date(b.week_start).getTime())
-    .map(d => ({
+  const sortedData = weeklyAggregated
+    .sort((a, b) => {
+      const dateA = typeof a.week_start === 'string' ? a.week_start : (a.week_start as any).value
+      const dateB = typeof b.week_start === 'string' ? b.week_start : (b.week_start as any).value
+      return new Date(dateA).getTime() - new Date(dateB).getTime()
+    })
+
+  // Calculate 4-week moving average
+  const movingAverageWindow = 4
+  const chartData = sortedData.map((d, index) => {
+    const startIndex = Math.max(0, index - movingAverageWindow + 1)
+    const window = sortedData.slice(startIndex, index + 1)
+    const avgJobCount = window.reduce((sum, item) => sum + item.job_count, 0) / window.length
+
+    // Handle BigQuery date format
+    const dateValue = typeof d.week_start === 'string' ? d.week_start : (d.week_start as any).value
+    const date = new Date(dateValue)
+
+    return {
       ...d,
-      week: new Date(d.week_start).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-    }))
+      week: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      job_count: Math.round(avgJobCount),
+      raw_job_count: d.job_count,
+    }
+  })
 
   if (loading) {
     return (

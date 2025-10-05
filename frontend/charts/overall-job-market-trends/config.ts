@@ -3,7 +3,7 @@ import { ChartConfig } from '@/lib/types'
 export const chartConfig: ChartConfig = {
   id: 'overall-job-market-trends',
   name: 'Overall Job Market Trends',
-  description: 'Weekly job posting volume across all 6M+ jobs since April 2025',
+  description: '4-week moving average of job posting volume across all 6M+ jobs since April 2025',
   category: 'trends',
   tags: ['trends', 'market', 'weekly', 'volume'],
   
