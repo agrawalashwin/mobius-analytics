@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Box, Typography, Chip, FormControl, InputLabel, Select, MenuItem, OutlinedInput } from '@mui/material'
+import { Box, Typography, Chip, FormControl, InputLabel, Select, MenuItem, OutlinedInput, CircularProgress } from '@mui/material'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import { chartConfig as config } from './config'
 import { ChartContainer } from '@/components/ChartContainer'
@@ -48,10 +48,25 @@ export default function OverallJobMarketTrendsChart() {
     fetchData()
   }, [])
 
-  // Get unique states for filter
+  // Get unique values for filters
   const allStates = Array.from(new Set(data.map(d => d.state).filter(Boolean))).sort()
+
   const roleTypes = ['All', 'Technical', 'Non-Technical']
-  const seniorityLevels = ['All', 'Junior', 'Mid-Level', 'Senior', 'Lead/Principal', 'Management']
+
+  // Get unique seniority levels from data - exclude experience-based rare values
+  const uniqueSeniorityLevels = Array.from(new Set(data.map(d => d.seniority_level).filter(Boolean)))
+    .filter(level => !level.includes('_TO_') && !level.includes('LESS_THAN') && !level.includes('MONTHS'))
+    .sort()
+  const seniorityLevels = ['All', ...uniqueSeniorityLevels]
+
+  // Debug: Log filter options
+  console.log('Filter options:')
+  console.log('- Seniority levels:', seniorityLevels)
+  console.log('- States:', allStates.length)
+
+  // Debug: Total jobs calculation
+  const totalJobsInData = data.reduce((sum, d) => sum + d.job_count, 0)
+  console.log('📊 Total jobs in raw data:', totalJobsInData.toLocaleString())
 
   // Filter and aggregate data
   const filteredData = data.filter(d => {
@@ -61,23 +76,33 @@ export default function OverallJobMarketTrendsChart() {
     return stateMatch && roleMatch && seniorityMatch
   })
 
-  // Aggregate by week
-  const weeklyAggregated = filteredData.reduce((acc, curr) => {
-    const existing = acc.find(item => item.week_start === curr.week_start)
+  // Aggregate by week - use a Map for better performance
+  const weeklyMap = new Map<string, { job_count: number; unique_companies: number; remote_jobs: number }>()
+
+  filteredData.forEach(curr => {
+    // Normalize the week_start date to handle BigQuery format
+    const dateValue = typeof curr.week_start === 'string' ? curr.week_start : (curr.week_start as any).value
+    const weekKey = dateValue
+
+    const existing = weeklyMap.get(weekKey)
     if (existing) {
       existing.job_count += curr.job_count
       existing.unique_companies += curr.unique_companies
       existing.remote_jobs += curr.remote_jobs
     } else {
-      acc.push({
-        week_start: curr.week_start,
+      weeklyMap.set(weekKey, {
         job_count: curr.job_count,
         unique_companies: curr.unique_companies,
         remote_jobs: curr.remote_jobs,
       })
     }
-    return acc
-  }, [] as { week_start: string; job_count: number; unique_companies: number; remote_jobs: number }[])
+  })
+
+  // Convert map to array
+  const weeklyAggregated = Array.from(weeklyMap.entries()).map(([week_start, data]) => ({
+    week_start,
+    ...data
+  }))
 
   // Sort by date
   const sortedData = weeklyAggregated
@@ -87,7 +112,7 @@ export default function OverallJobMarketTrendsChart() {
       return new Date(dateA).getTime() - new Date(dateB).getTime()
     })
 
-  // Calculate 4-week moving average
+  // Calculate 4-week moving average and linear trend
   const movingAverageWindow = 4
   const chartData = sortedData.map((d, index) => {
     const startIndex = Math.max(0, index - movingAverageWindow + 1)
@@ -103,8 +128,40 @@ export default function OverallJobMarketTrendsChart() {
       week: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
       job_count: Math.round(avgJobCount),
       raw_job_count: d.job_count,
+      index: index, // For trend line calculation
     }
   })
+
+  // Calculate linear regression trend line
+  const n = chartData.length
+  const sumX = chartData.reduce((sum, d, i) => sum + i, 0)
+  const sumY = chartData.reduce((sum, d) => sum + d.job_count, 0)
+  const sumXY = chartData.reduce((sum, d, i) => sum + i * d.job_count, 0)
+  const sumX2 = chartData.reduce((sum, d, i) => sum + i * i, 0)
+
+  const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX)
+  const intercept = (sumY - slope * sumX) / n
+
+  // Add trend line values to chart data
+  const chartDataWithTrend = chartData.map((d, i) => ({
+    ...d,
+    trend: Math.round(slope * i + intercept)
+  }))
+
+  // Debug: Log aggregation results
+  if (chartDataWithTrend.length > 0) {
+    console.log('Weekly aggregation results:')
+    console.log('- Raw data rows:', data.length)
+    console.log('- After filtering:', filteredData.length)
+    console.log('- After weekly aggregation:', weeklyAggregated.length)
+    console.log('- Final chart data points:', chartDataWithTrend.length)
+    console.log('\nFirst 10 weeks:', chartDataWithTrend.slice(0, 10).map(d => ({
+      week: d.week,
+      raw: d.raw_job_count,
+      smoothed: d.job_count,
+      trend: d.trend
+    })))
+  }
 
   if (loading) {
     return (
@@ -115,8 +172,18 @@ export default function OverallJobMarketTrendsChart() {
         height={config.display.height}
         methodology={config.methodology}
       >
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 400 }}>
-          <Typography>Loading...</Typography>
+        <Box sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: 400,
+          gap: 2
+        }}>
+          <CircularProgress size={48} thickness={4} sx={{ color: chartColors.primary }} />
+          <Typography variant="body2" color="text.secondary">
+            Loading job market data...
+          </Typography>
         </Box>
       </ChartContainer>
     )
@@ -130,18 +197,18 @@ export default function OverallJobMarketTrendsChart() {
       height={config.display.height}
       methodology={config.methodology}
     >
-      {/* Filters and Summary - All in one row */}
-      <Box sx={{ mb: 3 }}>
+      <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
+        {/* Filters and Summary - All in one row */}
         <Box sx={{
           display: 'flex',
-          flexDirection: { xs: 'column', sm: 'row' },
+          flexDirection: 'row',
           gap: 2,
-          mb: 2,
+          mb: 3,
           flexWrap: 'wrap',
-          alignItems: { xs: 'stretch', sm: 'center' }
+          alignItems: 'center'
         }}>
           {/* State Filter */}
-          <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 200 } }}>
+          <FormControl size="small" sx={{ minWidth: 200 }}>
             <InputLabel shrink>State</InputLabel>
             <Select
               multiple
@@ -155,8 +222,19 @@ export default function OverallJobMarketTrendsChart() {
                 return `${selected.length} states selected`
               }}
             >
-              <MenuItem value="" disabled>
-                <em>Select states</em>
+              <MenuItem
+                value="__select_all__"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  if (selectedStates.length === allStates.length) {
+                    setSelectedStates([])
+                  } else {
+                    setSelectedStates(allStates)
+                  }
+                }}
+                sx={{ fontWeight: 600, borderBottom: '1px solid #e0e0e0' }}
+              >
+                {selectedStates.length === allStates.length ? '✓ Deselect All' : 'Select All'}
               </MenuItem>
               {allStates.map((state) => (
                 <MenuItem key={state} value={state}>
@@ -167,7 +245,7 @@ export default function OverallJobMarketTrendsChart() {
           </FormControl>
 
           {/* Role Type Filter */}
-          <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 180 } }}>
+          <FormControl size="small" sx={{ minWidth: 180 }}>
             <InputLabel shrink>Role Type</InputLabel>
             <Select
               value={selectedRoleType}
@@ -185,7 +263,7 @@ export default function OverallJobMarketTrendsChart() {
           </FormControl>
 
           {/* Seniority Filter */}
-          <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 180 } }}>
+          <FormControl size="small" sx={{ minWidth: 180 }}>
             <InputLabel shrink>Seniority</InputLabel>
             <Select
               value={selectedSeniority}
@@ -205,7 +283,7 @@ export default function OverallJobMarketTrendsChart() {
           {/* Summary Stats */}
           <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
             <Chip
-              label={`${chartData.reduce((sum, d) => sum + d.job_count, 0).toLocaleString()} jobs`}
+              label={`${chartDataWithTrend.reduce((sum, d) => sum + d.job_count, 0).toLocaleString()} jobs`}
               color="primary"
               size="small"
             />
@@ -219,50 +297,60 @@ export default function OverallJobMarketTrendsChart() {
             )}
           </Box>
         </Box>
-      </Box>
 
-      {/* Chart */}
-      <Box sx={{ width: '100%', maxWidth: 1200, mx: 'auto', height: { xs: 350, sm: 400, md: config.display.height } }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart
-            data={chartData}
-            margin={{ top: 20, right: 30, left: 60, bottom: 60 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-            <XAxis
-              dataKey="week"
-              tick={{ fontSize: 11, fill: '#666' }}
-              stroke="#666"
-              angle={-45}
-              textAnchor="end"
-              height={80}
-            />
-            <YAxis
-              tick={{ fontSize: 11, fill: '#666' }}
-              stroke="#666"
-              tickFormatter={(value) => value.toLocaleString()}
-              label={{ value: 'Job Postings', angle: -90, position: 'insideLeft', style: { fontSize: 12 } }}
-            />
-            <Tooltip
-              contentStyle={{
-                backgroundColor: 'rgba(255, 255, 255, 0.96)',
-                border: '1px solid #e0e0e0',
-                borderRadius: '8px',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-              }}
-              formatter={(value: number) => [value.toLocaleString(), 'Jobs']}
-            />
-            <Line
-              type="monotone"
-              dataKey="job_count"
-              name="Weekly Job Postings"
-              stroke={chartColors.primary}
-              strokeWidth={3}
-              dot={{ fill: chartColors.primary, r: 4 }}
-              activeDot={{ r: 6 }}
-            />
-          </LineChart>
-        </ResponsiveContainer>
+        {/* Chart */}
+        <Box sx={{ width: '100%', maxWidth: 1200, mx: 'auto', height: { xs: 350, sm: 400, md: config.display.height } }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart
+              data={chartDataWithTrend}
+              margin={{ top: 20, right: 30, left: 60, bottom: 60 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis
+                dataKey="week"
+                tick={{ fontSize: 11, fill: '#666' }}
+                stroke="#666"
+                angle={-45}
+                textAnchor="end"
+                height={80}
+              />
+              <YAxis
+                tick={{ fontSize: 11, fill: '#666' }}
+                stroke="#666"
+                tickFormatter={(value) => value.toLocaleString()}
+                label={{ value: 'Job Postings', angle: -90, position: 'insideLeft', style: { fontSize: 12 } }}
+              />
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.96)',
+                  border: '1px solid #e0e0e0',
+                  borderRadius: '8px',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                }}
+                formatter={(value: number) => [value.toLocaleString(), 'Jobs']}
+              />
+              <Legend />
+              <Line
+                type="monotone"
+                dataKey="job_count"
+                name="Weekly Job Postings (4-week MA)"
+                stroke={chartColors.primary}
+                strokeWidth={3}
+                dot={{ fill: chartColors.primary, r: 4 }}
+                activeDot={{ r: 6 }}
+              />
+              <Line
+                type="monotone"
+                dataKey="trend"
+                name="Trend Line"
+                stroke="#FF6B6B"
+                strokeWidth={2}
+                strokeDasharray="5 5"
+                dot={false}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </Box>
       </Box>
     </ChartContainer>
   )
