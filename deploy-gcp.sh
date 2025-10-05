@@ -8,13 +8,15 @@ set -e
 PROJECT_ID="jobs-data-linkedin"
 REGION="us-west1"
 SERVICE_NAME="mobius-analytics"
-IMAGE_NAME="gcr.io/${PROJECT_ID}/${SERVICE_NAME}"
+REPO_NAME="mobius-analytics"
+IMAGE_NAME="${REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/${SERVICE_NAME}"
 
 echo "🚀 Deploying Mobius Analytics to GCP Cloud Run"
 echo "================================================"
 echo "Project: ${PROJECT_ID}"
 echo "Region: ${REGION}"
 echo "Service: ${SERVICE_NAME}"
+echo "Image: ${IMAGE_NAME}"
 echo ""
 
 # Check if gcloud is installed
@@ -32,7 +34,15 @@ gcloud config set project ${PROJECT_ID}
 echo "🔧 Enabling required APIs..."
 gcloud services enable cloudbuild.googleapis.com
 gcloud services enable run.googleapis.com
-gcloud services enable containerregistry.googleapis.com
+gcloud services enable artifactregistry.googleapis.com
+
+# Create Artifact Registry repository if it doesn't exist
+echo "📦 Creating Artifact Registry repository..."
+gcloud artifacts repositories create ${REPO_NAME} \
+  --repository-format=docker \
+  --location=${REGION} \
+  --description="Mobius Analytics Docker images" \
+  2>/dev/null || echo "Repository already exists"
 
 # Build the Docker image
 echo "🏗️  Building Docker image..."
