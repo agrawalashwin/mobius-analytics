@@ -132,15 +132,23 @@ export default function TopCompaniesHiringChart({ config = chartConfig }: ChartP
           </Typography>
         </Box>
 
-        <Box sx={{ width: '100%', maxWidth: 1200, mx: 'auto', height: { xs: 500, sm: 550, md: config.display.height } }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={chartData}
-              margin={{ top: 20, right: 80, left: 180, bottom: 20 }}
-              layout="vertical"
-              barCategoryGap="15%"
-              barGap={2}
-            >
+        <Box sx={{
+          width: '100%',
+          maxWidth: 1200,
+          mx: 'auto',
+          height: { xs: 500, sm: 550, md: config.display.height },
+          overflowX: { xs: 'auto', md: 'visible' },
+          overflowY: 'hidden'
+        }}>
+          <Box sx={{ minWidth: { xs: 700, md: '100%' }, height: '100%' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={chartData}
+                margin={{ top: 20, right: 80, left: 180, bottom: 20 }}
+                layout="vertical"
+                barCategoryGap="15%"
+                barGap={2}
+              >
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={true} vertical={false} />
             <XAxis type="number" hide />
             <YAxis
@@ -186,6 +194,7 @@ export default function TopCompaniesHiringChart({ config = chartConfig }: ChartP
             </Bar>
           </BarChart>
         </ResponsiveContainer>
+        </Box>
         </Box>
       </Box>
     </ChartContainer>

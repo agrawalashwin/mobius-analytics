@@ -75,13 +75,21 @@ export default function SalaryByRoleTypeChart({ config = chartConfig }: ChartPro
       height={config.display.height}
       methodology={config.methodology}
     >
-      <Box sx={{ width: '100%', maxWidth: 1200, mx: 'auto', height: config.display.height }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={chartData}
-            margin={{ top: 20, right: 80, left: 120, bottom: 20 }}
-            layout="vertical"
-          >
+      <Box sx={{
+        width: '100%',
+        maxWidth: 1200,
+        mx: 'auto',
+        height: config.display.height,
+        overflowX: { xs: 'auto', md: 'visible' },
+        overflowY: 'hidden'
+      }}>
+        <Box sx={{ minWidth: { xs: 600, md: '100%' }, height: '100%' }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={chartData}
+              margin={{ top: 20, right: 80, left: 120, bottom: 20 }}
+              layout="vertical"
+            >
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={true} vertical={false} />
             <XAxis 
               type="number" 
@@ -142,6 +150,7 @@ export default function SalaryByRoleTypeChart({ config = chartConfig }: ChartPro
             </Bar>
           </BarChart>
         </ResponsiveContainer>
+        </Box>
       </Box>
     </ChartContainer>
   )

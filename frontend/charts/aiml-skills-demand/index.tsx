@@ -165,13 +165,21 @@ export default function AiMlSkillsDemandChart({ config: configProp }: ChartProps
           </Box>
         </Box>
 
-        <Box sx={{ width: '100%', maxWidth: 1200, mx: 'auto', height: { xs: 400, sm: 450, md: chartConfig.height } }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={sortedData}
-              margin={{ top: 20, right: 80, left: 120, bottom: 20 }}
-              layout="vertical"
-            >
+        <Box sx={{
+          width: '100%',
+          maxWidth: 1200,
+          mx: 'auto',
+          height: { xs: 400, sm: 450, md: chartConfig.height },
+          overflowX: { xs: 'auto', md: 'visible' },
+          overflowY: 'hidden'
+        }}>
+          <Box sx={{ minWidth: { xs: 600, md: '100%' }, height: '100%' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={sortedData}
+                margin={{ top: 20, right: 80, left: 120, bottom: 20 }}
+                layout="vertical"
+              >
             <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={true} vertical={false} />
             <XAxis type="number" hide />
             <YAxis
@@ -212,6 +220,7 @@ export default function AiMlSkillsDemandChart({ config: configProp }: ChartProps
             </Bar>
           </BarChart>
         </ResponsiveContainer>
+        </Box>
         </Box>
       </Box>
     </ChartContainer>
