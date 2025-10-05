@@ -14,6 +14,7 @@ import MonthlyTrendsChart from '@/charts/monthly-trends/index'
 import AiMlSkillsDemandChart from '@/charts/aiml-skills-demand/index'
 import CompanyJobListingsChart from '@/charts/company-job-listings/index'
 import SalaryByRoleTypeChart from '@/charts/salary-by-role-type/index'
+import OverallJobMarketTrendsChart from '@/charts/overall-job-market-trends/index'
 import TestChart from '@/charts/test-chart/index'
 import SimpleTestChart from '@/charts/simple-test/index'
 
@@ -26,6 +27,7 @@ import { config as monthlyTrendsConfig } from '@/charts/monthly-trends/config'
 import { config as aimlSkillsDemandConfig } from '@/charts/aiml-skills-demand/config'
 import { chartConfig as companyJobListingsConfig } from '@/charts/company-job-listings/config'
 import { chartConfig as salaryByRoleTypeConfig } from '@/charts/salary-by-role-type/config'
+import { chartConfig as overallJobMarketTrendsConfig } from '@/charts/overall-job-market-trends/config'
 import { chartConfig as testChartConfig } from '@/charts/test-chart/config'
 import { chartConfig as simpleTestConfig } from '@/charts/simple-test/config'
 
@@ -39,6 +41,7 @@ const chartComponents: Record<string, ComponentType<ChartProps>> = {
   'aiml-skills-demand': AiMlSkillsDemandChart,
   'company-job-listings': CompanyJobListingsChart,
   'salary-by-role-type': SalaryByRoleTypeChart,
+  'overall-job-market-trends': OverallJobMarketTrendsChart,
   'test-chart': TestChart,
   'simple-test': SimpleTestChart,
 }
@@ -52,6 +55,7 @@ registerChart(monthlyTrendsConfig)
 registerChart(aimlSkillsDemandConfig)
 registerChart(companyJobListingsConfig)
 registerChart(salaryByRoleTypeConfig)
+registerChart(overallJobMarketTrendsConfig)
 registerChart(testChartConfig)
 registerChart(simpleTestConfig)
 

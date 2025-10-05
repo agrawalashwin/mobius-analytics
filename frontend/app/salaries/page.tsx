@@ -60,6 +60,17 @@ export default function SalariesPage() {
         lastUpdated={lastUpdated}
       />
 
+      {/* Overall Market Trends Section */}
+      <Box id="market-trends-section" sx={{ mb: 6 }}>
+        <DashboardSection>
+          <Grid container spacing={{ xs: 2, sm: 2, md: 3 }}>
+            <Grid xs={12}>
+              <ChartRenderer chartId="overall-job-market-trends" />
+            </Grid>
+          </Grid>
+        </DashboardSection>
+      </Box>
+
       {/* Comparison Section */}
       <Box id="comparison-section" sx={{ mb: 6 }}>
         <DashboardSection>
